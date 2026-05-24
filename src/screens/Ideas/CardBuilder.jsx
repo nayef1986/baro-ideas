@@ -53,7 +53,7 @@ function GeminiGen({ productName, productImage, onAddToCard }) {
       {/* الأسلوب */}
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"7px",marginBottom:"14px"}}>
         {STYLES.map(st=>(
-          <button key={st.key} onClick={()=>setStyle(st.key)} style={{padding:"10px",borderRadius:"12px",border:"none",cursor:"pointer",fontFamily:"Cairo,sans-serif",fontSize:"13px",fontWeight:"700",
+          <button key={st.key} onClick={()=>setStyle(st.key)} style={{padding:"10px",borderRadius:"12px",cursor:"pointer",fontFamily:"Cairo,sans-serif",fontSize:"13px",fontWeight:"700",
             background:style===st.key?"rgba(168,159,196,0.2)":"rgba(255,255,255,0.04)",
             color:style===st.key?"#a89fc4":"rgba(255,255,255,0.4)",
             border:style===st.key?"1px solid rgba(168,159,196,0.4)":"1px solid rgba(255,255,255,0.07)",
@@ -169,7 +169,7 @@ function CardTab({ initType, initProd }) {
         <div style={{fontSize:"13px",fontWeight:"700",color:"rgba(212,168,83,0.6)",marginBottom:"12px"}}>نوع العرض</div>
         <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"8px"}}>
           {TYPES.map(ot=>(
-            <button key={ot.key} onClick={()=>setType(ot.key)} style={{padding:"11px 6px",borderRadius:"13px",border:"none",cursor:"pointer",fontFamily:"Cairo,sans-serif",fontSize:"12px",fontWeight:"700",background:type===ot.key?ot.color+"20":"rgba(255,255,255,0.04)",color:type===ot.key?ot.color:"rgba(255,255,255,0.35)",border:type===ot.key?"1px solid "+ot.color+"45":"1px solid rgba(255,255,255,0.07)",display:"flex",flexDirection:"column",alignItems:"center",gap:"5px",transition:"all 0.2s"}}>
+            <button key={ot.key} onClick={()=>setType(ot.key)} style={{padding:"11px 6px",borderRadius:"13px",cursor:"pointer",fontFamily:"Cairo,sans-serif",fontSize:"12px",fontWeight:"700",background:type===ot.key?ot.color+"20":"rgba(255,255,255,0.04)",color:type===ot.key?ot.color:"rgba(255,255,255,0.35)",border:type===ot.key?"1px solid "+ot.color+"45":"1px solid rgba(255,255,255,0.07)",display:"flex",flexDirection:"column",alignItems:"center",gap:"5px",transition:"all 0.2s"}}>
               <span style={{fontSize:"22px"}}>{ot.icon}</span>{ot.label}
             </button>
           ))}

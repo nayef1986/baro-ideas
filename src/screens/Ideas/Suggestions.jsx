@@ -9,7 +9,7 @@ function SuggestionsTab({ onBuild, PRODUCTS = [], FACTORIES = [], BRANCHES = [] 
     <div style={{display:"flex",flexDirection:"column",gap:"12px"}}>
       <div style={{display:"flex",gap:"6px",flexWrap:"wrap"}}>
         {[["all","الكل"],["products","منتجات"],["factories","مصانع"],["branches","فروع"]].map(([k,l])=>(
-          <button key={k} onClick={()=>setFilter(k)} style={{padding:"7px 15px",borderRadius:"100px",border:"none",cursor:"pointer",fontFamily:"Cairo,sans-serif",fontSize:"13px",fontWeight:"700",background:filter===k?"rgba(212,168,83,0.2)":"rgba(255,245,220,0.05)",color:filter===k?S.gold:"rgba(255,255,255,0.4)",border:filter===k?"1px solid rgba(212,168,83,0.4)":"1px solid rgba(255,255,255,0.08)",transition:"all 0.2s"}}>{l}</button>
+          <button key={k} onClick={()=>setFilter(k)} style={{padding:"7px 15px",borderRadius:"100px",cursor:"pointer",fontFamily:"Cairo,sans-serif",fontSize:"13px",fontWeight:"700",background:filter===k?"rgba(212,168,83,0.2)":"rgba(255,245,220,0.05)",color:filter===k?S.gold:"rgba(255,255,255,0.4)",border:filter===k?"1px solid rgba(212,168,83,0.4)":"1px solid rgba(255,255,255,0.08)",transition:"all 0.2s"}}>{l}</button>
         ))}
       </div>
 
