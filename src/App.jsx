@@ -49,24 +49,43 @@ export default function App() {
     </div>
   );
 
+  const handleSaveImage = async (barcode, base64) => {
+    try {
+      const key = "baro_images_v2";
+      // نقرأ الصور الحالية
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/baro_store?key=eq.${encodeURIComponent(key)}&select=value`,
+        { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } }
+      );
+      const rows = await res.json();
+      const current = rows?.length ? JSON.parse(rows[0].value) : {};
+      const updated = { ...current, [barcode]: base64 };
+
+      // نحفظ
+      await fetch(`${SUPABASE_URL}/rest/v1/baro_store`, {
+        method: "POST",
+        headers: {
+          apikey: SUPABASE_KEY,
+          Authorization: `Bearer ${SUPABASE_KEY}`,
+          "Content-Type": "application/json",
+          Prefer: "resolution=merge-duplicates",
+        },
+        body: JSON.stringify({ key, value: JSON.stringify(updated) }),
+      });
+
+      // تحديث الـ state
+      setImages(updated);
+    } catch (e) { console.error("Save image failed:", e); }
+  };
+
   return (
     <div style={{ minHeight:"100vh", background:"#0a0804", direction:"rtl", padding:"20px 16px" }}>
-      {/* زر الرجوع */}
-      <a href="https://baro-inventory-qmpp.vercel.app" style={{
-        display:"inline-flex", alignItems:"center", gap:"6px",
-        background:"rgba(212,168,83,0.1)", border:"1px solid rgba(212,168,83,0.25)",
-        borderRadius:"100px", padding:"7px 16px",
-        color:"#d4a853", fontSize:"13px", fontWeight:"700",
-        textDecoration:"none", marginBottom:"16px",
-        fontFamily:"Cairo,sans-serif",
-      }}>
-        ← رجوع للنظام
-      </a>
       <IdeasScreen
         products={products}
         periods={periods}
         settings={settings}
         images={images}
+        onSaveImage={handleSaveImage}
       />
     </div>
   );
