@@ -31,6 +31,73 @@ function saveLocal(data) {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch {}
 }
 
+
+// ─── تنبيهات + Gemini ────────────────────────────────────────
+function AlertsTab({ products, periods, images, settings, onBuildCard, onAddToIdeas }) {
+  const [sub, setSub] = useState("alerts");
+  return (
+    <div>
+      <div style={{display:"flex",gap:"6px",marginBottom:"14px",background:"rgba(255,255,255,0.04)",borderRadius:"14px",padding:"4px"}}>
+        {[["alerts","🔔 تنبيهات"],["gemini","🧠 Gemini"]].map(([k,l])=>(
+          <button key={k} onClick={()=>setSub(k)} style={{
+            flex:1,padding:"8px",borderRadius:"11px",border:"none",cursor:"pointer",
+            fontFamily:"Cairo,sans-serif",fontSize:"13px",fontWeight:"700",
+            background:sub===k?"rgba(212,168,83,0.15)":"transparent",
+            color:sub===k?"#d4a853":"rgba(255,255,255,0.35)",
+            border:sub===k?"1px solid rgba(212,168,83,0.3)":"1px solid transparent",
+          }}>{l}</button>
+        ))}
+      </div>
+      {sub==="alerts" && <Suspense fallback={<Loader/>}><AlertCenterComp products={products} periods={periods} onBuildCard={onBuildCard} onAddToIdeas={onAddToIdeas}/></Suspense>}
+      {sub==="gemini" && <Suspense fallback={<Loader/>}><GeminiEngineComp products={products} periods={periods} images={images} settings={settings} onBuildCard={onBuildCard} onAddToIdeas={onAddToIdeas}/></Suspense>}
+    </div>
+  );
+}
+
+// ─── إنشاء: بطاقة + محاكاة ───────────────────────────────────
+function CreateTab({ bT, bP, products, images, periods }) {
+  const [sub, setSub] = useState("card");
+  return (
+    <div>
+      <div style={{display:"flex",gap:"6px",marginBottom:"14px",background:"rgba(255,255,255,0.04)",borderRadius:"14px",padding:"4px"}}>
+        {[["card","🎨 بطاقة"],["sim","🔬 محاكاة"]].map(([k,l])=>(
+          <button key={k} onClick={()=>setSub(k)} style={{
+            flex:1,padding:"8px",borderRadius:"11px",border:"none",cursor:"pointer",
+            fontFamily:"Cairo,sans-serif",fontSize:"13px",fontWeight:"700",
+            background:sub===k?"rgba(168,159,196,0.15)":"transparent",
+            color:sub===k?"#a89fc4":"rgba(255,255,255,0.35)",
+            border:sub===k?"1px solid rgba(168,159,196,0.3)":"1px solid transparent",
+          }}>{l}</button>
+        ))}
+      </div>
+      {sub==="card" && <Suspense fallback={<Loader/>}><CardBuilderComp initType={bT} initProd={bP} products={products} images={images} periods={periods}/></Suspense>}
+      {sub==="sim"  && <Suspense fallback={<Loader/>}><SimulationComp products={products} periods={periods}/></Suspense>}
+    </div>
+  );
+}
+
+// ─── إعدادات: قواعد + منتجات ─────────────────────────────────
+function SettingsTab({ products, periods, images, rules, onSave, onSaveImage }) {
+  const [sub, setSub] = useState("products");
+  return (
+    <div>
+      <div style={{display:"flex",gap:"6px",marginBottom:"14px",background:"rgba(255,255,255,0.04)",borderRadius:"14px",padding:"4px"}}>
+        {[["products","📦 منتجات"],["rules","⚙️ قواعد"]].map(([k,l])=>(
+          <button key={k} onClick={()=>setSub(k)} style={{
+            flex:1,padding:"8px",borderRadius:"11px",border:"none",cursor:"pointer",
+            fontFamily:"Cairo,sans-serif",fontSize:"13px",fontWeight:"700",
+            background:sub===k?"rgba(138,171,142,0.15)":"transparent",
+            color:sub===k?"#8aab8e":"rgba(255,255,255,0.35)",
+            border:sub===k?"1px solid rgba(138,171,142,0.3)":"1px solid transparent",
+          }}>{l}</button>
+        ))}
+      </div>
+      {sub==="products" && <Suspense fallback={<Loader/>}><ProductCardsComp products={products} periods={periods} images={images} onSaveImage={onSaveImage}/></Suspense>}
+      {sub==="rules"    && <Suspense fallback={<Loader/>}><ProfitRulesComp rules={rules} onSave={onSave}/></Suspense>}
+    </div>
+  );
+}
+
 export default function IdeasScreen({ products=[], periods=[], settings={}, images={}, onSaveImage }) {
   const [tab,      setTab]    = useState("alerts");
   const [bT,       setBT]     = useState(null);
@@ -87,13 +154,10 @@ export default function IdeasScreen({ products=[], periods=[], settings={}, imag
   `;
 
   const TABS = [
-    { key:"alerts",   icon:"🔔", label:"تنبيهات" },
-    { key:"gemini",   icon:"🧠", label:"Gemini"  },
-    { key:"ideas",    icon:"💡", label:"أفكار"   },
-    { key:"products", icon:"📦", label:"منتجات"  },
-    { key:"card",     icon:"🎨", label:"بطاقة"   },
-    { key:"sim",      icon:"🔬", label:"محاكاة"  },
-    { key:"rules",    icon:"⚙️", label:"قواعد"   },
+    { key:"alerts",  icon:"🔔", label:"تنبيهات" },
+    { key:"ideas",   icon:"💡", label:"أفكار"   },
+    { key:"create",  icon:"🎨", label:"إنشاء"   },
+    { key:"settings",icon:"⚙️", label:"إعدادات" },
   ];
 
   const alertCount  = ready ? PRODUCTS.filter(p=>p.soldPct<25||p.closing===0).length : 0;
@@ -140,13 +204,10 @@ export default function IdeasScreen({ products=[], periods=[], settings={}, imag
 
         {ready && (
           <Suspense fallback={<Loader />}>
-            {tab==="alerts" && <AlertCenterComp products={PRODUCTS} periods={periods} onBuildCard={onBuildCard} onAddToIdeas={addIdea} />}
-            {tab==="gemini" && <GeminiEngineComp products={PRODUCTS} periods={periods} images={images} settings={settings} onBuildCard={onBuildCard} onAddToIdeas={addIdea} />}
-            {tab==="ideas"  && <IdeasLogComp ideas={ideas} onAdd={addIdea} onEdit={editIdea} onDelete={deleteIdea} onStatusChange={changeStatus} />}
-            {tab==="sim"    && <SimulationComp products={PRODUCTS} periods={periods} />}
-            {tab==="products" && <ProductCardsComp products={PRODUCTS} periods={periods} images={images} onSaveImage={onSaveImage} />}
-            {tab==="card"   && <CardBuilderComp initType={bT} initProd={bP} products={PRODUCTS} images={images} periods={periods} />}
-            {tab==="rules"  && <ProfitRulesComp rules={rules} onSave={persistRules} />}
+            {tab==="alerts" && <AlertsTab products={PRODUCTS} periods={periods} images={images} settings={settings} onBuildCard={onBuildCard} onAddToIdeas={addIdea} />}
+            {tab==="ideas"   && <IdeasLogComp ideas={ideas} onAdd={addIdea} onEdit={editIdea} onDelete={deleteIdea} onStatusChange={changeStatus} />}
+            {tab==="create"  && <CreateTab bT={bT} bP={bP} products={PRODUCTS} images={images} periods={periods} />}
+            {tab==="settings"&& <SettingsTab products={PRODUCTS} periods={periods} images={images} rules={rules} onSave={persistRules} onSaveImage={onSaveImage} />}
           </Suspense>
         )}
       </div>
@@ -154,22 +215,37 @@ export default function IdeasScreen({ products=[], periods=[], settings={}, imag
       {/* Bottom Nav — قابل للتمرير */}
       <nav style={{
         position:"fixed",bottom:0,right:0,left:0,
-        background:"#080604",borderTop:"1px solid rgba(212,168,83,0.12)",
-        zIndex:50,paddingBottom:"env(safe-area-inset-bottom,0px)",
-        overflowX:"auto",
+        background:"rgba(8,6,4,0.92)",
+        backdropFilter:"blur(24px)",WebkitBackdropFilter:"blur(24px)",
+        borderTop:"1px solid rgba(212,168,83,0.1)",
+        zIndex:50,
+        paddingBottom:"env(safe-area-inset-bottom,0px)",
+        boxShadow:"0 -1px 0 rgba(255,255,255,0.04), 0 -8px 32px rgba(0,0,0,0.3)",
       }}>
-        <div style={{display:"flex",minWidth:"440px",maxWidth:"440px",margin:"0 auto"}}>
+        <div style={{display:"flex",width:"100%"}}>
           {TABS.map(({key,icon,label})=>(
             <button key={key} onClick={()=>setTab(key)} style={{
               flex:1,display:"flex",flexDirection:"column",alignItems:"center",
-              gap:"2px",padding:"8px 2px",border:"none",background:"transparent",
-              cursor:"pointer",fontFamily:"Cairo,sans-serif",minWidth:"60px",
-              color:tab===key?"#d4a853":"rgba(255,255,255,0.3)",
+              gap:"3px",padding:"9px 2px 7px",border:"none",background:"transparent",
+              cursor:"pointer",fontFamily:"Cairo,sans-serif",
               WebkitTapHighlightColor:"transparent",
-              borderTop:tab===key?"2px solid #d4a853":"2px solid transparent",
+              minWidth:0,
             }}>
-              <span style={{fontSize:"17px",lineHeight:1}}>{icon}</span>
-              <span style={{fontSize:"9px",fontWeight:"700",lineHeight:1}}>{label}</span>
+              <span style={{
+                fontSize:tab===key?"22px":"19px",
+                lineHeight:1,
+                padding:"5px 12px",
+                borderRadius:"100px",
+                background:tab===key?"rgba(212,168,83,0.15)":"transparent",
+                transition:"all 0.2s ease",
+                display:"block",
+                filter:tab===key?"none":"opacity(0.45)",
+              }}>{icon}</span>
+              <span style={{
+                fontSize:"9px",fontWeight:"700",lineHeight:1,
+                color:tab===key?"#d4a853":"rgba(255,255,255,0.3)",
+                transition:"color 0.2s",
+              }}>{label}</span>
             </button>
           ))}
         </div>

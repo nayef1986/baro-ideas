@@ -122,7 +122,26 @@ function ProductDetailCard({ product, periods, images, onClose, onSaveImage }) {
             <div style={{flex:1,minWidth:0}}>
               <div style={{fontSize:"16px",fontWeight:"900",color:S.white,lineHeight:"1.3",marginBottom:"5px"}}>{product.name}</div>
               <div style={{fontSize:"11px",color:"rgba(255,255,255,0.4)",fontFamily:"monospace",marginBottom:"4px"}}>{product.barcode}</div>
-              <div style={{fontSize:"11px",color:"rgba(212,168,83,0.6)"}}>🏭 {factoryCode}</div>
+              <div style={{display:"flex",gap:"8px",flexWrap:"wrap",marginTop:"2px"}}>
+                <span style={{fontSize:"11px",color:"rgba(212,168,83,0.6)"}}>🏭 {factoryCode}</span>
+                {product.container && <span style={{fontSize:"11px",color:"rgba(99,162,241,0.7)"}}>📦 {product.container}</span>}
+              </div>
+              {/* أفضل فرع */}
+              {(() => {
+                const branches = {};
+                (periods??[]).forEach(per => {
+                  Object.entries(per.sales??{}).forEach(([branch,data]) => {
+                    const qty = Number(data[product.barcode]?.qty??0);
+                    if(qty>0) branches[branch] = (branches[branch]??0)+qty;
+                  });
+                });
+                const top = Object.entries(branches).sort((a,b)=>b[1]-a[1])[0];
+                return top ? (
+                  <div style={{fontSize:"11px",color:"rgba(138,171,142,0.7)",marginTop:"2px"}}>
+                    🏪 {top[0].slice(0,20)} · {top[1]} قطعة
+                  </div>
+                ) : null;
+              })()}
             </div>
             <div style={{display:"inline-flex",background:`${perfColor}15`,border:`1px solid ${perfColor}30`,borderRadius:"100px",padding:"5px 11px",fontSize:"12px",fontWeight:"700",color:perfColor,flexShrink:0}}>{perfLabel}</div>
           </div>

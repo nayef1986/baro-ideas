@@ -9,7 +9,26 @@ function buildDataSummary(products, periods) {
     (a.uploadDate??a.label) > (b.uploadDate??b.label) ? 1 : -1
   );
 
-  const productData = products.slice(0, 80).map(p => {
+  // نبني index للفروع لكل منتج
+  const branchIndex = {};
+  sorted.forEach(per => {
+    Object.entries(per.sales ?? {}).forEach(([branch, data]) => {
+      Object.entries(data).forEach(([bc, v]) => {
+        if (!branchIndex[bc]) branchIndex[bc] = {};
+        branchIndex[bc][branch] = (branchIndex[bc][branch] ?? 0) + Number(v.qty ?? 0);
+      });
+    });
+  });
+
+  // نبني index للمصانع
+  const factoryMap = {};
+  products.forEach(p => {
+    const factory = p.barcode?.match(/^(\d{5})/)?.[1] ?? "";
+    if (!factoryMap[factory]) factoryMap[factory] = { count:0, totalSold:0, name: factory };
+    factoryMap[factory].count++;
+  });
+
+  const productData = products.slice(0, 100).map(p => {
     const monthly = sorted.map(per => ({
       label: per.label,
       qty: Object.values(per.sales ?? {}).reduce((s,b) =>
@@ -24,19 +43,47 @@ function buildDataSummary(products, periods) {
     const soldPct    = bought > 0 ? (totalSold/bought)*100 : 0;
     const frozenVal  = remaining * (p.buyPrice ?? 0);
     const margin     = p.buyPrice > 0 ? ((p.sellPrice-p.buyPrice)/p.buyPrice)*100 : 0;
+    const factory    = p.barcode?.match(/^(\d{5})/)?.[1] ?? "";
+
+    // أفضل فرع للمنتج
+    const branches = branchIndex[p.barcode] ?? {};
+    const topBranch = Object.entries(branches).sort((a,b)=>b[1]-a[1])[0]?.[0] ?? "";
+    const branchCount = Object.keys(branches).filter(b => branches[b] > 0).length;
 
     return {
       name: p.name?.slice(0,30),
       barcode: p.barcode,
+      container: p.container ?? "",
+      factory,
       lastMonth, prevMonth, growth: Math.round(growth),
       remaining, soldPct: Math.round(soldPct),
       buyPrice: p.buyPrice, sellPrice: p.sellPrice,
       margin: Math.round(margin), frozenVal: Math.round(frozenVal),
-      monthly: monthly.slice(-4).map(m => m.qty),
+      monthly: monthly.slice(-6).map(m => m.qty),
+      topBranch: topBranch.slice(0,15),
+      branchCount,
     };
   });
 
-  return { products: productData, periods: sorted.map(p=>p.label) };
+  // تحليل المصانع
+  const factoryData = Object.entries(
+    products.reduce((acc, p) => {
+      const f = p.barcode?.match(/^(\d{5})/)?.[1] ?? "غير معروف";
+      if (!acc[f]) acc[f] = { factory:f, products:0, totalSold:0, frozenVal:0 };
+      const sold = sorted.reduce((s,per) =>
+        s + Object.values(per.sales??{}).reduce((ss,d)=>ss+Number(d[p.barcode]?.qty??0),0), 0);
+      acc[f].products++;
+      acc[f].totalSold += sold;
+      acc[f].frozenVal += Math.max(0,(p.qty??0)-sold) * (p.buyPrice??0);
+      return acc;
+    }, {})
+  ).map(([,v])=>v).sort((a,b)=>b.frozenVal-a.frozenVal).slice(0,10);
+
+  return {
+    products: productData,
+    periods: sorted.map(p=>p.label),
+    factories: factoryData,
+  };
 }
 
 function buildGeminiPrompt(data, lang = "ar") {
@@ -45,20 +92,26 @@ function buildGeminiPrompt(data, lang = "ar") {
   const rising = top.filter(p => p.growth > 20).sort((a,b)=>b.growth-a.growth).slice(0,5);
   const falling = top.filter(p => p.growth < -20).sort((a,b)=>a.growth-b.growth).slice(0,5);
 
-  return `أنت محاسب ومسوّق محترف متخصص في منتجات التجزئة، مستوحى من أساليب البراندات الصينية والكورية.
+  // تحليل المصانع الضعيفة
+  const weakFactories = data.factories?.filter(f=>f.frozenVal>1000).slice(0,3) ?? [];
 
-البيانات الحقيقية للمنتجات:
+  return `أنت محاسب ومسوّق محترف متخصص في منتجات التجزئة.
+
+الفترات المتاحة: ${data.periods.join(", ")}
 
 المنتجات الراكدة (أقل من 30% مباع):
-${slow.map(p=>`- ${p.name} | باركود: ${p.barcode} | مباع: ${p.soldPct}% | متبقي: ${p.remaining} قطعة | قيمة مجمدة: ${p.frozenVal} ﷼ | هامش: ${p.margin}%`).join('\n')}
+${slow.map(p=>`- ${p.name} | ${p.barcode} | مصنع: ${p.factory} | كونتينر: ${p.container} | مباع: ${p.soldPct}% | متبقي: ${p.remaining} | مجمّد: ${p.frozenVal} ﷼ | أفضل فرع: ${p.topBranch}`).join('\n')}
 
 المنتجات الصاعدة (نمو > 20%):
-${rising.map(p=>`- ${p.name} | نمو: ${p.growth > 0 ? '+' : ''}${p.growth}% | آخر شهر: ${p.lastMonth} قطعة`).join('\n')}
+${rising.map(p=>`- ${p.name} | ${p.barcode} | مصنع: ${p.factory} | نمو: +${p.growth}% | آخر شهر: ${p.lastMonth} | ${p.branchCount} فرع`).join('\n')}
 
-المنتجات الهابطة (انخفاض > 20%):
-${falling.map(p=>`- ${p.name} | انخفاض: ${p.growth}% | آخر شهر: ${p.lastMonth} قطعة`).join('\n')}
+المنتجات الهابطة:
+${falling.map(p=>`- ${p.name} | ${p.barcode} | مصنع: ${p.factory} | انخفاض: ${p.growth}% | آخر شهر: ${p.lastMonth}`).join('\n')}
 
-المطلوب: قدم 10-12 اقتراحاً ذكياً ومبتكراً بأسلوب البراندات الصينية والكورية، بصيغة JSON فقط بدون أي نص خارج JSON:
+المصانع الأعلى تجميداً:
+${weakFactories.map(f=>`- مصنع ${f.factory}: ${f.products} منتج | مجمّد: ${Math.round(f.frozenVal)} ﷼`).join('\n')}
+
+المطلوب: قدم 10-12 اقتراحاً ذكياً بأسلوب البراندات الصينية والكورية، بصيغة JSON فقط بدون أي نص خارج JSON:
 
 {
   "suggestions": [
@@ -69,6 +122,9 @@ ${falling.map(p=>`- ${p.name} | انخفاض: ${p.growth}% | آخر شهر: ${p.
       "title": "عنوان الاقتراح",
       "product": "اسم المنتج",
       "barcode": "رقم الباركود",
+      "container": "رقم الكونتينر إن وجد",
+      "factory": "رقم المصنع",
+      "topBranch": "أفضل فرع للمنتج",
       "reason": "سبب الاقتراح بجملة واحدة مختصرة",
       "action": "الإجراء المقترح",
       "expectedImpact": "التأثير المتوقع",
@@ -100,9 +156,10 @@ function SuggestionCard({ s, products, images, onBuildCard, onAddToIdeas }) {
         <span style={{fontSize:"22px",flexShrink:0}}>{typeInfo.icon}</span>
         <div style={{flex:1,minWidth:0}}>
           <div style={{fontSize:"15px",fontWeight:"900",color:S.white,marginBottom:"2px"}}>{s.product || s.title}</div>
-          <div style={{display:"flex",gap:"8px",alignItems:"center"}}>
-            <div style={{fontSize:"11px",color:"rgba(255,255,255,0.3)",fontFamily:"monospace"}}>{s.barcode}</div>
-            {s.barcode && <div style={{fontSize:"11px",color:"rgba(212,168,83,0.5)"}}>🏭 {s.barcode.slice(0,5)}</div>}
+          <div style={{display:"flex",gap:"7px",alignItems:"center",flexWrap:"wrap",marginTop:"2px"}}>
+            <div style={{fontSize:"10px",color:"rgba(255,255,255,0.3)",fontFamily:"monospace"}}>{s.barcode}</div>
+            {s.barcode && <div style={{fontSize:"10px",color:"rgba(212,168,83,0.5)"}}>🏭 {s.barcode.slice(0,5)}</div>}
+            {s.container && <div style={{fontSize:"10px",color:"rgba(99,162,241,0.6)"}}>📦 {s.container}</div>}
           </div>
         </div>
         <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:"4px",flexShrink:0}}>

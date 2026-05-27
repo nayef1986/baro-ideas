@@ -88,6 +88,7 @@ function buildAlerts(products, periods) {
 export function AlertCenter({ products, periods, onBuildCard, onAddToIdeas }) {
   const [filter,   setFilter]   = useState("all");
   const [expanded, setExpanded] = useState(null);
+  const [tick,     setTick]     = useState(0);
 
   const alerts = useMemo(() => buildAlerts(products, periods), [products, periods]);
 
@@ -144,7 +145,7 @@ export function AlertCenter({ products, periods, onBuildCard, onAddToIdeas }) {
       ) : (
         filtered.map((a,i) => (
           <div key={i} style={{borderRadius:"14px",overflow:"hidden",border:`1px solid ${a.color}25`,marginBottom:"8px"}}>
-            <div onClick={()=>setExpanded(expanded===i?null:i)} style={{
+            <div onClick={(e)=>{e.stopPropagation();setExpanded(p=>p===i?null:i);}} style={{
               padding:"12px 14px",background:`${a.color}08`,cursor:"pointer",
               display:"flex",alignItems:"center",gap:"11px",
             }}>

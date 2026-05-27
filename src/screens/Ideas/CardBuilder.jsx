@@ -311,9 +311,9 @@ export function CardTab({ initType, initProd, products = [], images = {}, period
         )}
       </div>
 
-      {/* معاينة البطاقة */}
+      {/* أنشئ البطاقة */}
       <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:"12px"}}>
-        <div style={{fontSize:"12px",color:"rgba(212,168,83,0.5)",fontWeight:"700"}}>معاينة البطاقة</div>
+        <div style={{fontSize:"12px",color:"rgba(212,168,83,0.5)",fontWeight:"700"}}>أنشئ البطاقة</div>
         <div ref={cardRef} style={{width:"100%",maxWidth:"320px",background:"#0d0b06",borderRadius:"20px",overflow:"hidden",border:`1.5px solid ${t.color}28`}}>
           <div style={{background:`linear-gradient(135deg,${t.color}ee,${t.color}99)`,padding:"14px 18px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
             <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
