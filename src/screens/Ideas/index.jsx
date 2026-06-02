@@ -2,7 +2,7 @@
 import { useState, useEffect, lazy, Suspense } from "react";
 import { totalPurchases, num } from "../../lib/calc.js";
 
-const ComboEngineComp = lazy(() => import("./ComboEngine.jsx").then(m=>({default:m.ComboEngine})));
+const DecisionEngineComp = lazy(() => import("./DecisionEngine.jsx").then(m=>({default:m.DecisionEngine})));
 const ComboCardComp   = lazy(() => import("./ComboCard.jsx").then(m=>({default:m.ComboCard})));
 const IdeasLogComp    = lazy(() => import("./IdeasLog.jsx").then(m=>({default:m.IdeasLog})));
 const AlertCenterComp = lazy(() => import("./AlertCenter.jsx").then(m=>({default:m.AlertCenter})));
@@ -67,7 +67,7 @@ export default function IdeasScreen({ products=[], periods=[], settings={}, imag
   `;
 
   const TABS = [
-    { key:"combo",   icon:"🧮", label:"كومبو"   },
+    { key:"combo",   icon:"🎯", label:"قرارات"  },
     { key:"alerts",  icon:"🔔", label:"تنبيهات" },
     { key:"ideas",   icon:"💡", label:"أفكار"   },
     { key:"rules",   icon:"⚙️", label:"قواعد"   },
@@ -82,7 +82,7 @@ export default function IdeasScreen({ products=[], periods=[], settings={}, imag
         {/* Header */}
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"14px"}}>
           <div>
-            <h1 style={{fontSize:"22px",fontWeight:"900",color:"#ffffff",marginBottom:"2px"}}>مركز الكومبو</h1>
+            <h1 style={{fontSize:"22px",fontWeight:"900",color:"#ffffff",marginBottom:"2px"}}>مركز القرارات</h1>
             <p style={{fontSize:"11px",color:"rgba(212,168,83,0.6)"}}>محاسبي ذكي · بدون خسارة</p>
           </div>
           <a href="https://baro-inventory-qmpp.vercel.app" style={{display:"inline-flex",alignItems:"center",gap:"4px",background:"rgba(212,168,83,0.08)",border:"1px solid rgba(212,168,83,0.2)",borderRadius:"100px",padding:"5px 11px",color:"#d4a853",fontSize:"11px",fontWeight:"700",textDecoration:"none"}}>← النظام</a>
@@ -92,7 +92,7 @@ export default function IdeasScreen({ products=[], periods=[], settings={}, imag
 
         {ready && (
           <Suspense fallback={<Loader />}>
-            {tab==="combo"  && <ComboEngineComp products={PRODUCTS} periods={periods} onBuildCard={onBuildCard} />}
+            {tab==="combo"  && <DecisionEngineComp products={PRODUCTS} periods={periods} settings={settings} />}
             {tab==="card"   && <ComboCardComp combo={combo} images={images} onBack={()=>setTab("combo")} />}
             {tab==="alerts" && <AlertCenterComp products={PRODUCTS} periods={periods} onBuildCard={onBuildCard} onAddToIdeas={addIdea} />}
             {tab==="ideas"  && <IdeasLogComp ideas={ideas} onAdd={addIdea} onEdit={editIdea} onDelete={deleteIdea} onStatusChange={changeStatus} />}
