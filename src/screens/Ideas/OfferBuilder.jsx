@@ -36,6 +36,9 @@ export function OfferBuilder({ products = [], periods = [], images = {}, setting
   const [pct, setPct] = useState(20);
   const [bundlePrice, setBundlePrice] = useState(0);
   const [title, setTitle] = useState("");
+  const [viewMode, setViewMode] = useState("all");  // all | grouped
+  const [openCont, setOpenCont] = useState({});       // كونتينرات مفتوحة
+  const [openFac, setOpenFac] = useState({});          // مصانع مفتوحة
 
   // قائمة المنتجات (الأضعف/الأقوى أداءً)
   const list = useMemo(() => {
@@ -44,6 +47,22 @@ export function OfferBuilder({ products = [], periods = [], images = {}, setting
     return [...l].sort((a,b) => sortBy === "weak" ? a.soldPct - b.soldPct : b.soldPct - a.soldPct);
   }, [products, search, sortBy]);
 
+  // تجميع: كونتينر ← مصنع ← منتجات
+  const grouped = useMemo(() => {
+    const map = {};
+    list.forEach(p => {
+      const cont = p.purchases?.slice(-1)[0]?.container ?? p.container ?? "بدون كونتينر";
+      const fac = factoryOf(p.barcode) || "—";
+      if (!map[cont]) map[cont] = {};
+      if (!map[cont][fac]) map[cont][fac] = [];
+      map[cont][fac].push(p);
+    });
+    return Object.entries(map).map(([cont, facs]) => ({
+      cont,
+      factories: Object.entries(facs).map(([fac, prods]) => ({ fac, prods })),
+    }));
+  }, [list]);
+
   const selectedProducts = useMemo(
     () => selected.map(bc => products.find(p => p.barcode === bc)).filter(Boolean),
     [selected, products]
@@ -51,13 +70,53 @@ export function OfferBuilder({ products = [], periods = [], images = {}, setting
 
   const toggle = (bc) => setSelected(s => s.includes(bc) ? s.filter(x=>x!==bc) : [...s, bc]);
 
+  // بطاقة منتج كبيرة (نفس شكل احتياج المنتجات)
+  const ProductRow = (p) => {
+    const on = selected.includes(p.barcode);
+    const perfColor = p.soldPct>60?"#8aab8e":p.soldPct>30?"#d4a853":"#e8855a";
+    const img = images?.[p.barcode];
+    return (
+      <div key={p.barcode} onClick={()=>toggle(p.barcode)} style={{
+        display:"flex",alignItems:"center",gap:"12px",padding:"13px 14px",
+        background:on?"rgba(212,168,83,0.12)":"rgba(255,255,255,0.04)",
+        border:on?"1px solid rgba(212,168,83,0.5)":"1px solid rgba(255,255,255,0.07)",
+        borderRadius:"16px",cursor:"pointer",
+      }}>
+        <div style={{width:"28px",height:"28px",borderRadius:"8px",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",
+          background:on?S.gold:"rgba(255,255,255,0.08)",color:on?"#0a0804":"transparent",fontSize:"16px",fontWeight:"900"}}>✓</div>
+        {img
+          ? <img src={img} alt="" style={{width:"58px",height:"58px",borderRadius:"12px",objectFit:"cover",flexShrink:0}} />
+          : <div style={{width:"58px",height:"58px",borderRadius:"12px",background:"rgba(255,255,255,0.04)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"26px",flexShrink:0}}>📦</div>}
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontSize:"16px",fontWeight:"700",color:S.white,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</div>
+          <div style={{fontSize:"12px",color:"rgba(255,255,255,0.35)",fontFamily:"monospace",marginTop:"2px"}}>{p.barcode}</div>
+        </div>
+        <div style={{textAlign:"left",flexShrink:0}}>
+          <div style={{fontSize:"18px",fontWeight:"900",color:perfColor}}>{Math.round(p.soldPct)}%</div>
+          <div style={{fontSize:"11px",color:"rgba(255,255,255,0.3)"}}>{fm(p.closing)} متبقي</div>
+        </div>
+      </div>
+    );
+  };
+
   // ─── المرحلة 1: اختيار المنتجات ───
   if (step === 1) {
     return (
       <div>
         <Header step={1} />
+        {/* خيار العرض */}
+        <div style={{display:"flex",gap:"6px",marginBottom:"10px"}}>
+          {[["all","📋 كل المنتجات"],["grouped","📦 كونتينر ← مصنع"]].map(([k,l])=>(
+            <button key={k} onClick={()=>setViewMode(k)} style={{
+              flex:1,padding:"9px",borderRadius:"11px",cursor:"pointer",fontFamily:"Cairo,sans-serif",fontSize:"12px",fontWeight:"700",
+              background:viewMode===k?"rgba(99,102,241,0.2)":"rgba(255,255,255,0.05)",
+              color:viewMode===k?"#a5b4fc":"rgba(255,255,255,0.4)",
+              border:viewMode===k?"1px solid rgba(99,102,241,0.4)":"1px solid rgba(255,255,255,0.08)",
+            }}>{l}</button>
+          ))}
+        </div>
         <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="🔍 بحث بالاسم أو الباركود…"
-          style={{width:"100%",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(212,168,83,0.15)",borderRadius:"12px",padding:"10px 14px",color:S.white,fontSize:"13px",fontFamily:"Cairo,sans-serif",outline:"none",marginBottom:"10px"}} />
+          style={{width:"100%",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(212,168,83,0.15)",borderRadius:"12px",padding:"11px 14px",color:S.white,fontSize:"14px",fontFamily:"Cairo,sans-serif",outline:"none",marginBottom:"10px"}} />
         <div style={{display:"flex",gap:"6px",marginBottom:"12px"}}>
           {[["weak","🔴 الأضعف أداءً"],["strong","🟢 الأقوى أداءً"]].map(([k,l])=>(
             <button key={k} onClick={()=>setSortBy(k)} style={{
@@ -69,35 +128,47 @@ export function OfferBuilder({ products = [], periods = [], images = {}, setting
           ))}
         </div>
 
-        <div style={{display:"flex",flexDirection:"column",gap:"8px",marginBottom:"80px"}}>
-          {list.slice(0,60).map(p => {
-            const on = selected.includes(p.barcode);
-            const perfColor = p.soldPct>60?"#8aab8e":p.soldPct>30?"#d4a853":"#e8855a";
-            const img = images?.[p.barcode];
-            return (
-              <div key={p.barcode} onClick={()=>toggle(p.barcode)} style={{
-                display:"flex",alignItems:"center",gap:"12px",padding:"10px 12px",
-                background:on?"rgba(212,168,83,0.12)":"rgba(255,255,255,0.04)",
-                border:on?"1px solid rgba(212,168,83,0.5)":"1px solid rgba(255,255,255,0.07)",
-                borderRadius:"14px",cursor:"pointer",
-              }}>
-                <div style={{width:"24px",height:"24px",borderRadius:"7px",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",
-                  background:on?S.gold:"rgba(255,255,255,0.08)",color:on?"#0a0804":"transparent",fontSize:"14px",fontWeight:"900"}}>✓</div>
-                {img
-                  ? <img src={img} alt="" style={{width:"46px",height:"46px",borderRadius:"10px",objectFit:"cover",flexShrink:0}} />
-                  : <div style={{width:"46px",height:"46px",borderRadius:"10px",background:"rgba(255,255,255,0.04)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"20px",flexShrink:0}}>📦</div>}
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:"13px",fontWeight:"700",color:S.white,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</div>
-                  <div style={{fontSize:"10px",color:"rgba(255,255,255,0.3)",fontFamily:"monospace"}}>{p.barcode}</div>
+        {/* عرض الكل */}
+        {viewMode === "all" && (
+          <div style={{display:"flex",flexDirection:"column",gap:"8px",marginBottom:"90px"}}>
+            {list.slice(0,80).map(p => ProductRow(p))}
+          </div>
+        )}
+
+        {/* عرض مجمّع: كونتينر ← مصنع ← منتجات */}
+        {viewMode === "grouped" && (
+          <div style={{display:"flex",flexDirection:"column",gap:"8px",marginBottom:"90px"}}>
+            {grouped.map(({cont, factories}) => {
+              const contOpen = openCont[cont];
+              const contCount = factories.reduce((s,f)=>s+f.prods.length,0);
+              return (
+                <div key={cont} style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:"14px",overflow:"hidden"}}>
+                  <div onClick={()=>setOpenCont(o=>({...o,[cont]:!o[cont]}))} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 14px",cursor:"pointer"}}>
+                    <div style={{fontSize:"14px",fontWeight:"900",color:"#a5b4fc"}}>📦 {cont}</div>
+                    <div style={{fontSize:"12px",color:"rgba(255,255,255,0.4)"}}>{contCount} منتج {contOpen?"▲":"▼"}</div>
+                  </div>
+                  {contOpen && factories.map(({fac, prods}) => {
+                    const facKey = cont+"_"+fac;
+                    const facOpen = openFac[facKey];
+                    return (
+                      <div key={facKey} style={{borderTop:"1px solid rgba(255,255,255,0.05)"}}>
+                        <div onClick={()=>setOpenFac(o=>({...o,[facKey]:!o[facKey]}))} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px 10px 24px",cursor:"pointer",background:"rgba(0,0,0,0.2)"}}>
+                          <div style={{fontSize:"13px",fontWeight:"700",color:S.gold}}>🏭 {fac}</div>
+                          <div style={{fontSize:"11px",color:"rgba(255,255,255,0.4)"}}>{prods.length} {facOpen?"▲":"▼"}</div>
+                        </div>
+                        {facOpen && (
+                          <div style={{display:"flex",flexDirection:"column",gap:"6px",padding:"8px 12px"}}>
+                            {prods.map(p => ProductRow(p))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
-                <div style={{textAlign:"left",flexShrink:0}}>
-                  <div style={{fontSize:"13px",fontWeight:"900",color:perfColor}}>{Math.round(p.soldPct)}%</div>
-                  <div style={{fontSize:"9px",color:"rgba(255,255,255,0.3)"}}>{fm(p.closing)} متبقي</div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
 
         {selected.length > 0 && (
           <div style={{position:"fixed",bottom:"80px",left:0,right:0,padding:"0 16px",maxWidth:"440px",margin:"0 auto",zIndex:40}}>
@@ -250,10 +321,21 @@ function OfferCard({ products, images, offerType, pct, bundlePrice, title, setti
     try {
       const html2canvas = await loadScript("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js", "html2canvas");
       const canvas = await html2canvas(cardRef.current, { scale:2, backgroundColor:"#0d0b06", useCORS:true });
+      const fn = `offer-${Date.now()}.jpg`;
+      const blob = await new Promise(res => canvas.toBlob(res, "image/jpeg", 0.92));
+      // مشاركة مباشرة للاستوديو (آيفون/أندرويد)
+      if (blob && navigator.canShare) {
+        const file = new File([blob], fn, { type: "image/jpeg" });
+        if (navigator.canShare({ files: [file] })) {
+          try { await navigator.share({ files: [file], title: "عرض البارو" }); setSaving(false); return; }
+          catch (e) { if (e?.name === "AbortError") { setSaving(false); return; } }
+        }
+      }
+      // احتياطي: تنزيل عادي
+      const url = blob ? URL.createObjectURL(blob) : canvas.toDataURL("image/jpeg", 0.92);
       const a = document.createElement("a");
-      a.href = canvas.toDataURL("image/jpeg", 0.92);
-      a.download = `offer-${Date.now()}.jpg`;
-      a.click();
+      a.href = url; a.download = fn; a.click();
+      if (blob) setTimeout(()=>URL.revokeObjectURL(url), 1000);
     } catch { alert("استخدم لقطة الشاشة"); }
     setSaving(false);
   };
@@ -282,8 +364,8 @@ function OfferCard({ products, images, offerType, pct, bundlePrice, title, setti
             return (
               <div key={p.barcode} style={{display:"flex",gap:"12px",alignItems:"center",padding:"10px 0",borderBottom:i<products.length-1?"1px solid rgba(255,255,255,0.06)":"none"}}>
                 {img
-                  ? <img src={img} alt="" style={{width:"64px",height:"64px",borderRadius:"12px",objectFit:"cover",flexShrink:0,border:`1px solid ${color}30`}} />
-                  : <div style={{width:"64px",height:"64px",borderRadius:"12px",background:"rgba(255,255,255,0.05)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"26px",flexShrink:0}}>📦</div>}
+                  ? <img src={img} alt="" style={{width:"80px",height:"80px",borderRadius:"12px",objectFit:"contain",flexShrink:0,border:`1px solid ${color}30`,background:"#fff",padding:"3px"}} />
+                  : <div style={{width:"80px",height:"80px",borderRadius:"12px",background:"rgba(255,255,255,0.05)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"30px",flexShrink:0}}>📦</div>}
                 <div style={{flex:1,minWidth:0}}>
                   <div style={{fontSize:"14px",fontWeight:"700",color:S.white,lineHeight:1.3}}>{p.name}</div>
                   <div style={{fontSize:"10px",color:"rgba(255,255,255,0.35)",fontFamily:"monospace",marginTop:"2px"}}>{p.barcode}</div>
@@ -293,7 +375,7 @@ function OfferCard({ products, images, offerType, pct, bundlePrice, title, setti
                   </div>
                 </div>
                 <div style={{textAlign:"left",flexShrink:0}}>
-                  <div style={{fontSize:"14px",fontWeight:"900",color:S.gold}}>{fm(p.sellPrice)} ﷼</div>
+                  <div style={{fontSize:"19px",fontWeight:"900",color:S.gold}}>{fm(p.sellPrice)} ﷼</div>
                 </div>
               </div>
             );
@@ -304,13 +386,13 @@ function OfferCard({ products, images, offerType, pct, bundlePrice, title, setti
         <div style={{margin:"0 14px 14px",background:`${color}12`,border:`1px solid ${color}30`,borderRadius:"14px",padding:"14px"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
             <div>
-              <div style={{fontSize:"11px",color:"rgba(255,255,255,0.4)",textDecoration:"line-through"}}>كان {fm(calc.totalOld)} ﷼</div>
-              <div style={{fontSize:"24px",fontWeight:"900",color}}>صار {fm(calc.totalNew)} ﷼</div>
+              <div style={{fontSize:"15px",color:"rgba(255,255,255,0.45)",textDecoration:"line-through"}}>كان {fm(calc.totalOld)} ﷼</div>
+              <div style={{fontSize:"36px",fontWeight:"900",color,lineHeight:1.1,marginTop:"2px"}}>صار {fm(calc.totalNew)} ﷼</div>
             </div>
             {calc.saved > 0 && (
               <div style={{textAlign:"center",background:`${color}25`,borderRadius:"12px",padding:"8px 14px"}}>
-                <div style={{fontSize:"10px",color:"rgba(255,255,255,0.6)"}}>توفّر</div>
-                <div style={{fontSize:"18px",fontWeight:"900",color:"#8aab8e"}}>{fm(calc.saved)} ﷼</div>
+                <div style={{fontSize:"12px",color:"rgba(255,255,255,0.6)"}}>توفّر</div>
+                <div style={{fontSize:"26px",fontWeight:"900",color:"#8aab8e",lineHeight:1.1}}>{fm(calc.saved)} ﷼</div>
               </div>
             )}
           </div>
