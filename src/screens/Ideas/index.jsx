@@ -1,4 +1,4 @@
-// Ideas/index.jsx — مركز الكومبو المحاسبي v3
+// Ideas/index.jsx — مركز الكومبو المحاسبي v3 + منشئ العروض
 import { useState, useEffect, lazy, Suspense } from "react";
 import { totalPurchases, num } from "../../lib/calc.js";
 
@@ -7,6 +7,7 @@ const ComboCardComp   = lazy(() => import("./ComboCard.jsx").then(m=>({default:m
 const IdeasLogComp    = lazy(() => import("./IdeasLog.jsx").then(m=>({default:m.IdeasLog})));
 const AlertCenterComp = lazy(() => import("./AlertCenter.jsx").then(m=>({default:m.AlertCenter})));
 const ProfitRulesComp = lazy(() => import("./ProfitRules.jsx").then(m=>({default:m.ProfitRules})));
+const OfferBuilderComp = lazy(() => import("./OfferBuilder.jsx").then(m=>({default:m.OfferBuilder})));
 
 const Loader = () => (
   <div style={{textAlign:"center",padding:"40px"}}>
@@ -68,6 +69,7 @@ export default function IdeasScreen({ products=[], periods=[], settings={}, imag
 
   const TABS = [
     { key:"combo",   icon:"🎯", label:"قرارات"  },
+    { key:"offer",   icon:"🏷️", label:"عروض"   },
     { key:"alerts",  icon:"🔔", label:"تنبيهات" },
     { key:"ideas",   icon:"💡", label:"أفكار"   },
     { key:"rules",   icon:"⚙️", label:"قواعد"   },
@@ -93,6 +95,7 @@ export default function IdeasScreen({ products=[], periods=[], settings={}, imag
         {ready && (
           <Suspense fallback={<Loader />}>
             {tab==="combo"  && <DecisionEngineComp products={PRODUCTS} periods={periods} settings={settings} />}
+            {tab==="offer"  && <OfferBuilderComp products={PRODUCTS} periods={periods} images={images} settings={settings} />}
             {tab==="card"   && <ComboCardComp combo={combo} images={images} onBack={()=>setTab("combo")} />}
             {tab==="alerts" && <AlertCenterComp products={PRODUCTS} periods={periods} onBuildCard={onBuildCard} onAddToIdeas={addIdea} />}
             {tab==="ideas"  && <IdeasLogComp ideas={ideas} onAdd={addIdea} onEdit={editIdea} onDelete={deleteIdea} onStatusChange={changeStatus} />}
