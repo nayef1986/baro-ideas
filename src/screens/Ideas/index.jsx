@@ -41,7 +41,7 @@ export default function IdeasScreen({ products=[], periods=[], settings={}, imag
   useEffect(() => {
     if (!products || products.length===0) { setReady(true); return; }
     const t = setTimeout(() => {
-      const prods = products.slice(0,150).map(p => {
+      const prods = products.slice(0,600).map(p => {
         const bought = totalPurchases(p);
         const sold = periods.reduce((tot, per) =>
           tot + Object.values(per?.sales ?? {}).reduce((s,d)=>s+num(d[p.barcode]?.qty??0),0), 0);
