@@ -39,6 +39,7 @@ export function OfferBuilder({ products = [], periods = [], images = {}, setting
   const [viewMode, setViewMode] = useState("all");  // all | grouped
   const [openCont, setOpenCont] = useState({});       // كونتينرات مفتوحة
   const [openFac, setOpenFac] = useState({});          // مصانع مفتوحة
+  const [showCount, setShowCount] = useState(40);      // كم منتج يظهر في "الكل"
 
   // قائمة المنتجات (الأضعف/الأقوى أداءً)
   const list = useMemo(() => {
@@ -131,7 +132,12 @@ export function OfferBuilder({ products = [], periods = [], images = {}, setting
         {/* عرض الكل */}
         {viewMode === "all" && (
           <div style={{display:"flex",flexDirection:"column",gap:"8px",marginBottom:"90px"}}>
-            {list.slice(0,40).map(p => ProductRow(p))}
+            {list.slice(0,showCount).map(p => ProductRow(p))}
+            {list.length > showCount && (
+              <button onClick={()=>setShowCount(c=>c+40)} style={{padding:"12px",borderRadius:"12px",border:"1px solid rgba(212,168,83,0.3)",background:"rgba(212,168,83,0.08)",color:S.gold,fontSize:"13px",fontWeight:"700",cursor:"pointer",fontFamily:"Cairo,sans-serif"}}>
+                عرض المزيد ({list.length - showCount} منتج)
+              </button>
+            )}
           </div>
         )}
 
@@ -373,11 +379,11 @@ function OfferCard({ products, images, offerType, pct, bundlePrice, title, setti
                   ? <img src={img} alt="" style={{width:"80px",height:"80px",borderRadius:"12px",objectFit:"contain",flexShrink:0,border:`1px solid ${color}30`,background:"#fff",padding:"3px"}} />
                   : <div style={{width:"80px",height:"80px",borderRadius:"12px",background:"rgba(255,255,255,0.05)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"30px",flexShrink:0}}>📦</div>}
                 <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:"14px",fontWeight:"700",color:S.white,lineHeight:1.3}}>{p.name}</div>
-                  <div style={{fontSize:"10px",color:"rgba(255,255,255,0.35)",fontFamily:"monospace",marginTop:"2px"}}>{p.barcode}</div>
-                  <div style={{display:"flex",gap:"8px",marginTop:"3px",flexWrap:"wrap"}}>
-                    <span style={{fontSize:"10px",color:"rgba(212,168,83,0.7)"}}>🏭 {factory}</span>
-                    {container && <span style={{fontSize:"10px",color:"rgba(99,162,241,0.7)"}}>📦 {container}</span>}
+                  <div style={{fontSize:"17px",fontWeight:"900",color:"#ffffff",lineHeight:1.3}}>{p.name}</div>
+                  <div style={{fontSize:"14px",color:"rgba(255,255,255,0.7)",fontFamily:"monospace",fontWeight:"700",marginTop:"3px",letterSpacing:"0.5px"}}>{p.barcode}</div>
+                  <div style={{display:"flex",gap:"10px",marginTop:"5px",flexWrap:"wrap"}}>
+                    <span style={{fontSize:"12px",fontWeight:"700",color:"#e8c87a"}}>🏭 {factory}</span>
+                    {container && <span style={{fontSize:"12px",fontWeight:"700",color:"#8ab4f8"}}>📦 {container}</span>}
                   </div>
                 </div>
                 <div style={{textAlign:"left",flexShrink:0}}>
